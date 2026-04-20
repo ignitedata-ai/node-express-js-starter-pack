@@ -1,0 +1,31 @@
+import 'dotenv/config';
+import express from 'express';
+import cors from 'cors';
+import cookieParser from 'cookie-parser';
+import { env } from './config/env';
+import authRoutes from './routes/auth.routes';
+import userRoutes from './routes/user.routes';
+import { errorHandler } from './middleware/errorHandler';
+
+const app = express();
+
+app.use(cors({
+  origin: env.CLIENT_URL,
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
+}));
+
+app.use(express.json());
+app.use(cookieParser());
+
+app.use('/api/auth', authRoutes);
+app.use('/api/users', userRoutes);
+
+app.get('/api/health', (_req, res) => res.json({ status: 'ok' }));
+
+app.use(errorHandler);
+
+app.listen(env.PORT, () => {
+  console.log(`Server running on port ${env.PORT} [${env.NODE_ENV}]`);
+});

@@ -1,0 +1,50 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: nextdecade-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: nextdecade
+      POSTGRES_PASSWORD: nextdecade
+      POSTGRES_DB: nextdecade
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U nextdecade -d nextdecade"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  server:
+    build:
+      context: ./sever
+      dockerfile: Dockerfile
+    container_name: nextdecade-server
+    restart: unless-stopped
+    env_file: ./sever/.env
+    environment:
+      DATABASE_URL: postgresql://nextdecade:nextdecade@postgres:5432/nextdecade
+      NODE_ENV: production
+    ports:
+      - "4000:4000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  client:
+    build:
+      context: ./client
+      dockerfile: Dockerfile
+      args:
+        NEXT_PUBLIC_API_URL: http://localhost:4000/api
+    container_name: nextdecade-client
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    depends_on:
+      - server
+
+volumes:
+  postgres_data:
