@@ -16,4 +16,8 @@ router.get('/me', authenticate, async (req: Request, res: Response, next) => {
   }
 });
 
+router.get('/public-me', async (req: Request, res: Response, next) => {
+ res.json(ApiResponse.ok({ message: { id: 1, name: 'Madhuri'} }));
+});
+
 export default router;

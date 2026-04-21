@@ -1,6 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 import { verifyAccessToken } from '../utils/jwt';
-import { ApiError } from '../utils/ApiResponse';
+import { AuthenticationError } from '../errors';
 import type { AuthTokenPayload } from '../types/auth.types';
 
 declare global {
@@ -11,13 +11,13 @@ declare global {
   }
 }
 
-export function authenticate(req: Request, _res: Response, next: NextFunction) {
+export function authenticate(req: Request, _res: Response, next: NextFunction): void {
   const token = req.headers.authorization?.split(' ')[1];
-  if (!token) return next(new ApiError(401, 'No token provided'));
+  if (!token) return next(new AuthenticationError('No token provided'));
   try {
     req.user = verifyAccessToken(token);
     next();
   } catch {
-    next(new ApiError(401, 'Invalid or expired token'));
+    next(new AuthenticationError('Invalid or expired token'));
   }
 }

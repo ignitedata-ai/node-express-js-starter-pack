@@ -1,7 +1,7 @@
 import bcrypt from 'bcryptjs';
 import prisma from '../models/User';
 import { signAccessToken, signRefreshToken, verifyRefreshToken } from '../utils/jwt';
-import { ApiError } from '../utils/ApiResponse';
+import { AuthenticationError, ConflictError, ErrorCode } from '../errors';
 import type { RegisterRequest, LoginRequest, LoginResponse } from '../types/auth.types';
 
 function toPublicUser(user: { id: string; email: string; name: string; role: string; createdAt: Date }) {
@@ -15,7 +15,7 @@ function buildTokens(user: { id: string; email: string; role: string }) {
 
 export async function register(body: RegisterRequest): Promise<LoginResponse> {
   const existing = await prisma.user.findUnique({ where: { email: body.email } });
-  if (existing) throw new ApiError(409, 'Email already registered');
+  if (existing) throw new ConflictError('Email already registered', ErrorCode.EMAIL_TAKEN);
 
   const passwordHash = await bcrypt.hash(body.password, 12);
   const user = await prisma.user.create({ data: { email: body.email, name: body.name, passwordHash } });
@@ -29,10 +29,10 @@ export async function register(body: RegisterRequest): Promise<LoginResponse> {
 
 export async function login(body: LoginRequest): Promise<LoginResponse & { refreshToken: string }> {
   const user = await prisma.user.findUnique({ where: { email: body.email } });
-  if (!user) throw new ApiError(401, 'Invalid credentials');
+  if (!user) throw new AuthenticationError('Invalid credentials', ErrorCode.INVALID_CREDENTIALS);
 
   const valid = await bcrypt.compare(body.password, user.passwordHash);
-  if (!valid) throw new ApiError(401, 'Invalid credentials');
+  if (!valid) throw new AuthenticationError('Invalid credentials', ErrorCode.INVALID_CREDENTIALS);
 
   const { accessToken, refreshToken } = buildTokens(user);
   const hashedRefresh = await bcrypt.hash(refreshToken, 10);
@@ -46,14 +46,14 @@ export async function refresh(token: string): Promise<{ accessToken: string; use
   try {
     payload = verifyRefreshToken(token);
   } catch {
-    throw new ApiError(401, 'Invalid refresh token');
+    throw new AuthenticationError('Invalid refresh token', ErrorCode.TOKEN_INVALID);
   }
 
   const user = await prisma.user.findUnique({ where: { id: payload.sub } });
-  if (!user || !user.refreshToken) throw new ApiError(401, 'Session expired');
+  if (!user || !user.refreshToken) throw new AuthenticationError('Session expired', ErrorCode.SESSION_EXPIRED);
 
   const valid = await bcrypt.compare(token, user.refreshToken);
-  if (!valid) throw new ApiError(401, 'Invalid refresh token');
+  if (!valid) throw new AuthenticationError('Invalid refresh token', ErrorCode.TOKEN_INVALID);
 
   const accessToken = signAccessToken({ sub: user.id, email: user.email, role: user.role });
   return { accessToken, user: toPublicUser(user) };

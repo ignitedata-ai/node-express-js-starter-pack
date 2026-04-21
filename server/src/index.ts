@@ -26,6 +26,16 @@ app.get('/api/health', (_req, res) => res.json({ status: 'ok' }));
 
 app.use(errorHandler);
 
-app.listen(env.PORT, () => {
+const server = app.listen(env.PORT, () => {
   console.log(`Server running on port ${env.PORT} [${env.NODE_ENV}]`);
+});
+
+process.on('unhandledRejection', (reason: unknown) => {
+  console.error('Unhandled promise rejection:', reason);
+  server.close(() => process.exit(1));
+});
+
+process.on('uncaughtException', (err: Error) => {
+  console.error('Uncaught exception:', err);
+  server.close(() => process.exit(1));
 });

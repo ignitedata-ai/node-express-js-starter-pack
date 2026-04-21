@@ -21,7 +21,7 @@ services:
     image: node:20-alpine
     container_name: nextdecade-server-dev
     working_dir: /app
-    command: sh -c "npm install && npx prisma migrate deploy && npm run dev"
+    command: sh -c "npm install && npx prisma generate && npx prisma migrate deploy && npm run dev"
     env_file: ./sever/.env
     environment:
       DATABASE_URL: postgresql://nextdecade:nextdecade@postgres:5432/nextdecade
