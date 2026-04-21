@@ -21,3 +21,55 @@ enum Role {
   user
   admin
 }
+
+// schema.prisma
+
+model Cargo {
+  id                String            @id @default(uuid())
+  cargoId           String            @unique // e.g., "LNG-2026-0421"
+  vesselName        String
+  quantity          Float             // In cubic meters (m3)
+  energyContent     Float             // In MMBtu
+  loadingDate       DateTime
+  deliveryDate      DateTime?
+  status            CargoStatus       @default(PENDING)
+  
+  // Relation to the emission breakdown
+  emissionSummary   EmissionSummary?
+  
+  createdAt         DateTime          @default(now())
+  updatedAt         DateTime          @updatedAt
+}
+
+model EmissionSummary {
+  id                String   @id @default(uuid())
+  cargo             Cargo    @relation(fields: [cargoId], references: [id])
+  cargoId           String   @unique
+
+  // Upstream & Liquefaction (Metric Tons)
+  upstreamCO2       Float    @default(0.0)
+  upstreamCH4       Float    @default(0.0)
+  upstreamN2O       Float    @default(0.0)
+  upstreamCO2e      Float    @default(0.0)
+
+  // Shipping / Voyage (Metric Tons)
+  shippingCO2       Float    @default(0.0)
+  shippingCH4       Float    @default(0.0) // Includes Methane Slip
+  shippingN2O       Float    @default(0.0)
+  shippingCO2e      Float    @default(0.0)
+
+  // Downstream / Regasification (Metric Tons)
+  downstreamCO2e    Float    @default(0.0)
+
+  // Calculated Totals
+  totalWtWCO2e      Float    @default(0.0) // Well-to-Wake total
+  emissionIntensity Float    @default(0.0) // kg CO2e / MMBtu
+  methaneIntensity  Float    @default(0.0) // % of cargo mass
+}
+
+enum CargoStatus {
+  PENDING
+  IN_TRANSIT
+  DELIVERED
+  CANCELLED
+}
