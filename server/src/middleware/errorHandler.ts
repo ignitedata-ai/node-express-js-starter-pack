@@ -3,6 +3,7 @@ import { Prisma } from '@prisma/client';
 import jwt from 'jsonwebtoken';
 import { AppError, ErrorCode, ValidationError, NotFoundError, ConflictError, DatabaseError } from '../errors';
 import { ApiResponse } from '../utils/ApiResponse';
+import { getLogger } from '../lib/logger';
 import { env } from '../config/env';
 
 function fromPrismaError(err: Prisma.PrismaClientKnownRequestError): AppError {
@@ -21,15 +22,10 @@ function fromPrismaError(err: Prisma.PrismaClientKnownRequestError): AppError {
 }
 
 function log(err: Error, req: Request): void {
-  if (env.NODE_ENV === 'production') return;
-  console.error({
-    timestamp: new Date().toISOString(),
-    method: req.method,
-    path: req.path,
-    error: err.name,
-    message: err.message,
-    stack: err.stack,
-  });
+  getLogger({ method: req.method, path: req.path, errorName: err.name }).error(
+    { err },
+    err.message,
+  );
 }
 
 export function errorHandler(err: Error, req: Request, res: Response, _next: NextFunction): void {
