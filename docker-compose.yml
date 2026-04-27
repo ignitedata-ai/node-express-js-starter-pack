@@ -19,11 +19,11 @@ services:
 
   server:
     build:
-      context: ./sever
+      context: ./server
       dockerfile: Dockerfile
     container_name: nextdecade-server
     restart: unless-stopped
-    env_file: ./sever/.env
+    env_file: ./server/.env
     environment:
       DATABASE_URL: postgresql://nextdecade:nextdecade@postgres:5432/nextdecade
       NODE_ENV: production
